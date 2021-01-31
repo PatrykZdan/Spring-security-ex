@@ -33,7 +33,5 @@ public class Initializer  implements SmartInitializingSingleton {
 
         repository.save(josh);
         repository.save(carol);
-
-
     }
 }

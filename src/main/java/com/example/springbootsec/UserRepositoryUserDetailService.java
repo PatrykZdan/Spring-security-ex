@@ -8,15 +8,21 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static org.springframework.security.core.userdetails.User.withUsername;
 
 @Component
 public class UserRepositoryUserDetailService implements UserDetailsService {
 
     private final UserRepository users;
+    private final JwtProvider jwtProvider;
 
-    public UserRepositoryUserDetailService(UserRepository users) {
+    public UserRepositoryUserDetailService(UserRepository users, JwtProvider jwtProvider) {
         this.users = users;
+        this.jwtProvider = jwtProvider;
     }
 
     @Override
@@ -24,6 +30,21 @@ public class UserRepositoryUserDetailService implements UserDetailsService {
         return users.findByUsername(username)
                 .map(BridgeUser::new)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
+    }
+
+    public Optional<UserDetails> loadUserByJwtToken(String jwtToken) {
+        if (jwtProvider.isValidToken(jwtToken)) {
+            return Optional.of(
+                    withUsername(jwtProvider.getUsername(jwtToken))
+                            .authorities(jwtProvider.getRoles(jwtToken))
+                            .password("") //token does not have password but field may not be empty
+                            .accountExpired(false)
+                            .accountLocked(false)
+                            .credentialsExpired(false)
+                            .disabled(false)
+                            .build());
+        }
+        return Optional.empty();
     }
 
     private static class BridgeUser extends User implements UserDetails {
